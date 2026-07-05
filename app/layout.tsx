@@ -1,8 +1,9 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import ReactQueryProvider from '@/porviders/ReactQueryProvider';
 import { AuthProvider } from '@/context/auth-context';
+import { MobileBottomNav } from '@/components/bottomNavbar';
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -30,6 +31,13 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  themeColor: '#F133ED',
+  width: 'device-width',
+  initialScale: 1,
+}
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,6 +49,7 @@ export default function RootLayout({
         <AuthProvider>
         <ReactQueryProvider>
         {children}
+        <MobileBottomNav/>
         </ReactQueryProvider>
         </AuthProvider>
       </body>

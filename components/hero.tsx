@@ -58,14 +58,14 @@ export function Hero() {
         {slides.map((slide) => (
           <SwiperSlide key={slide.id}>
             {/* এখানে aspect ratio এবং fill বাদ দিয়ে w-full এবং h-auto করা হয়েছে */}
-            <div className="relative w-full h-auto">
+            <div className="relative w-full ">
               <Image
                 src={slide.imageSrc}
                 alt={slide.alt}
                 width={1920} // আপনার ইমেজের আসল উইডথ (যেকোনো স্ট্যান্ডার্ড সাইজ)
                 height={1080} // আপনার ইমেজের আসল হাইট
                 priority={slide.id === 1}
-                className="w-full h-auto object-inside" 
+                className="w-full lg:h-auto min-h-50 object-inside" 
               />
             </div>
           </SwiperSlide>

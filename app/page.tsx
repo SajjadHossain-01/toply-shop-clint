@@ -5,6 +5,12 @@ import { Hero } from '@/components/hero'
 import { InfoCards } from '@/components/info-cards'
 import { ProductSection } from '@/components/product-section'
 import { Footer } from '@/components/footer'
+import WhatsAppChat from '@/components/whatsapp'
+import { FeaturesProduct } from '@/components/feature-product'
+import { IntelligenceBook } from '@/components/IntelligenceBook'
+import AdModal from '@/components/addModal'
+import { NewArrivalProduct } from '@/components/newProduct'
+import { TopSellingProduct } from '@/components/topSelling-Product'
 
 export default function Home() {
   return (
@@ -12,22 +18,29 @@ export default function Home() {
       <Header />
       <Hero />
       <InfoCards />
-      <ProductSection 
-        title="নতুনদের জন্য খেলনা"
-        subtitle="শিশুদের বিকাশের জন্য সেরা পছন্দ"
+
+      <TopSellingProduct
+        title="Top Selling Products"
+        subtitle="আমাদের সবচেয়ে বেশি বিক্রিত পণ্যসমূহ"
       />
-      <ProductSection 
-        title="বিশেষ অফার"
-        subtitle="সীমিত সময়ের জন্য বিশেষ ছাড়"
+      <NewArrivalProduct
+        title="নতুন পণ্য"
+        subtitle="আমাদের সর্বশেষ সংযুক্ত পণ্যসমূহ"
       />
-      <ProductSection 
-        title="শিশুর জন্য পড়ার বই"
+      <FeaturesProduct
+        title="Feature Product"
+        subtitle="Our Feature Product"
+      />
+      <IntelligenceBook
+        title="Intelligence Book"
         subtitle="গল্প এবং শেখার জন্য সেরা বই"
       />
-      <ProductSection 
+      <ProductSection
         title="শিক্ষামূলক খেলনা"
         subtitle="মজা করার সাথে শিখুন"
       />
+      <WhatsAppChat />
+      <AdModal />
       <Footer />
     </div>
   )

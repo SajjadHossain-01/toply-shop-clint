@@ -1,13 +1,14 @@
 'use client'
 
 import useCart from '@/hooks/useCart'
-import { Search, ShoppingCart, Heart, User, Menu, X, LogOut, LayoutDashboard, Facebook, Youtube, Instagram } from 'lucide-react'
+import { Search, ShoppingCart, Heart, User, Menu, X, LogOut, LayoutDashboard, Facebook, Youtube, Instagram, FacebookIcon, YoutubeIcon } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import useAxiosPublic from '@/hooks/AxiosPublic'
+import Marquee from "react-fast-marquee";
 
 
 // Custom X (Twitter) Icon Component (যেহেতু lucide-react এ সরাসরি নতুন X আইকন অনেক সময় থাকে না)
@@ -29,6 +30,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/context/auth-context'
+import usewishlist from '@/hooks/useWishlish'
+
 
 interface ProductSuggestion {
   _id: string
@@ -41,11 +44,13 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [cart] = useCart()
+  const [wishlist] = usewishlist()
+
   const router = useRouter()
   const axiosPublic = useAxiosPublic()
-  const { user, logout } = useAuth()
-  
-// স্ক্রোল ইভেন্ট লিসেনার (স্ক্রোল করলে নিচের বার হাইড করার জন্য)
+  const { user, logout, isAdmin } = useAuth()
+
+  // স্ক্রোল ইভেন্ট লিসেনার (স্ক্রোল করলে নিচের বার হাইড করার জন্য)
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 100) {
@@ -62,8 +67,8 @@ export function Header() {
   // সার্চ এবং ডিবউন্স স্টেট
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  
-  const wishlistCount = 2
+
+
 
   // ডিবউন্স ইফেক্ট
   useEffect(() => {
@@ -87,7 +92,7 @@ export function Header() {
       })
       return response.data
     },
-    enabled: debouncedSearch.length >= 2, 
+    enabled: debouncedSearch.length >= 2,
   })
 
   const suggestions: ProductSuggestion[] = data?.products || []
@@ -104,57 +109,26 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-border shadow-sm">
       {/* Top Navigation Bar */}
-      <div className="bg-primary text-primary-foreground py-3 px-4">
+      <div className="bg-primary text-primary-foreground py-1.5 px-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
-          <div className=" hidden lg:flex gap-6">
-            <a href="tel:+8801" className="hover:text-secondary transition-colors">
-              Call: +880-1970467192
-            </a>
-            <a href="mailto:support@bazaarhub.com" className="hover:text-secondary transition-colors">
-              Email: info@toplyshop.com
-            </a>
-          </div>
-          
-          {/* Top Bar Right: কন্ডিশনাল সোশ্যাল আইকন অথবা সাইন-ইন লিঙ্ক */}
-          <div className="flex gap-4 items-center">
-             
-              <div className=" flex  items-center gap-2 text-primary-foreground/90">
-                <a href="https://facebook.com" target="_blank" rel="noreferrer" className="hover:text-secondary transition-colors">
-                  <Facebook size={16} fill="currentColor" stroke="none" />
-                </a>
-                <span className="text-primary-foreground/40 text-xs">|</span>
-                
-                <a href="https://youtube.com" target="_blank" rel="noreferrer" className="hover:text-secondary transition-colors">
-                  <Youtube size={18} className="stroke-[2]" />
-                </a>
-                <span className="text-primary-foreground/40 text-xs">|</span>
-                
-                <a href="https://x.com" target="_blank" rel="noreferrer" className="hover:text-secondary transition-colors">
-                  <XIcon size={14} />
-                </a>
-                <span className="text-primary-foreground/40 text-xs">|</span>
-                
-                <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:text-secondary transition-colors">
-                  <Instagram size={16} />
-                </a>
-              </div>
-            
-          </div>
+          <Marquee>
+           Buy the best baby books and educational toys online in Bangladesh. ToplyShop offers quality toys and books for children.
+          </Marquee>
         </div>
       </div>
 
       {/* Main Header */}
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between gap-4">
-          
+        <div className="flex items-center justify-between lg:gap-4 gap-2">
+
           {/* Logo Section */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition">
-            <div className="w-51 h-16.75">
+            <div className="lg:w-51 lg:h-16.75 w-40">
               <Image src="/logo.png" alt="main logo" width={800} height={400} priority className="object-contain" />
             </div>
           </Link>
 
-         {/* Search Bar & Suggestions - Desktop (মোটা বা লার্জ সাইজ করা হয়েছে) */}
+          {/* Search Bar & Suggestions - Desktop (মোটা বা লার্জ সাইজ করা হয়েছে) */}
           <div className="hidden md:block relative flex-1 max-w-6/12 mx-6">
             <form onSubmit={handleSearch} className="w-full relative">
               <input
@@ -186,10 +160,10 @@ export function Header() {
                         onClick={() => setSearchQuery('')}
                         className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition border-b border-border last:border-none"
                       >
-                        <img 
-                          src={product.images?.[0]} 
-                          alt={product.name} 
-                          className="w-10 h-10 object-cover rounded bg-muted" 
+                        <img
+                          src={product.images?.[0]}
+                          alt={product.name}
+                          className="w-10 h-10 object-cover rounded bg-muted"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{product.name}</p>
@@ -206,21 +180,31 @@ export function Header() {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-4">
-            
+          <div className="flex items-center lg:gap-4 gap-1.5">
+
             {/* Wishlist Icon */}
-            <Link href="/wishlist" className="relative group hidden sm:flex">
+            <Link href="https://www.facebook.com/toplyshop.com.bd/" target='blank' className="relative group  sm:flex">
+              <FacebookIcon className="w-6 h-6 text-foreground hover:text-primary transition-colors" />
+              
+            </Link>
+            {/* Wishlist Icon */}
+            <Link href="https://www.youtube.com/@toplyshopbd" target='blank' className="relative group  sm:flex">
+              <YoutubeIcon className="w-6 h-6 text-foreground hover:text-primary transition-colors" />
+             
+            </Link>
+            {/* Wishlist Icon */}
+            <Link href="/wishlist" className="relative group">
               <Heart className="w-6 h-6 text-foreground hover:text-primary transition-colors" />
-              {wishlistCount > 0 && (
+              {wishlist.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {wishlistCount}
+                  {wishlist.length}
                 </span>
               )}
             </Link>
 
             {/* Cart Icon */}
-            <Link href="/cart" className="relative group">
-              <ShoppingCart className="w-6 h-6 text-foreground hover:text-primary transition-colors" />
+            <Link href="/cart" className="relative group hidden sm:block lg:block">
+              <ShoppingCart className="  w-6 h-6 text-foreground hover:text-primary transition-colors" />
               {cart?.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {cart.length}
@@ -245,19 +229,23 @@ export function Header() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="my-1 bg-border h-px" />
-                    <DropdownMenuItem asChild className="focus:bg-muted rounded-md cursor-pointer">
+                    <DropdownMenuItem asChild className="focus:bg-primary rounded-md cursor-pointer">
                       <Link href="/profile" className="flex w-full items-center gap-2 px-2 py-2 text-sm">
                         <User className="w-4 h-4" /> Profile
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="focus:bg-muted rounded-md cursor-pointer">
-                      <Link href="/dashboard" className="flex w-full items-center gap-2 px-2 py-2 text-sm">
-                        <LayoutDashboard className="w-4 h-4" /> Dashboard
-                      </Link>
+                    <DropdownMenuItem asChild className="focus:bg-primary rounded-md cursor-pointer">
+                      {isAdmin ?
+                        <Link href="/admin" className="flex w-full items-center gap-2 px-2 py-2 text-sm">
+                          <LayoutDashboard className=" focus:text-white w-4 h-4" /> Admin panel
+                        </Link> :
+                        <Link href="/dashboard" className="flex w-full items-center gap-2 px-2 py-2 text-sm">
+                          <LayoutDashboard className="focus:text-white  w-4 h-4" /> Dashboard
+                        </Link>}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="my-1 bg-border h-px" />
-                    <DropdownMenuItem 
-                      onClick={logout} 
+                    <DropdownMenuItem
+                      onClick={logout}
                       className="focus:bg-destructive/10 text-destructive focus:text-destructive rounded-md cursor-pointer flex items-center gap-2 px-2 py-2 text-sm"
                     >
                       <LogOut className="w-4 h-4" /> Logout
@@ -267,14 +255,9 @@ export function Header() {
                   <>
                     <DropdownMenuLabel className="px-2 py-1.5 text-sm font-semibold">Welcome</DropdownMenuLabel>
                     <DropdownMenuSeparator className="my-1 bg-border h-px" />
-                    <DropdownMenuItem asChild className="focus:bg-muted rounded-md cursor-pointer">
+                    <DropdownMenuItem asChild className="focus:bg-primary rounded-md cursor-pointer">
                       <Link href="/login" className="flex w-full items-center gap-2 px-2 py-2 text-sm">
                         Sign In
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="focus:bg-muted rounded-md cursor-pointer">
-                      <Link href="/signup" className="flex w-full items-center gap-2 px-2 py-2 text-sm">
-                        Sign Up
                       </Link>
                     </DropdownMenuItem>
                   </>
@@ -295,7 +278,7 @@ export function Header() {
 
         {/* Mobile Search Bar & Suggestions */}
         <div className="md:hidden mt-3 relative">
-          <form onSubmit={handleSearch} className="w-full relative">
+          <form onSubmit={handleSearch} className="w-full relative pb-3.5">
             <input
               type="text"
               placeholder="Search products..."
@@ -342,15 +325,14 @@ export function Header() {
       </div>
 
       {/* Category/Main Navigation */}
-      <nav className={`bg-primary/5 hidden lg:block border-t border-border transition-all duration-300 origin-top overflow-hidden ${
-          isScrolled ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-16 opacity-100'
+      <nav className={`bg-primary/5 hidden lg:block border-t border-border transition-all duration-300 origin-top overflow-hidden ${isScrolled ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-16 opacity-100'
         }`}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-6  overflow-x-auto scrollbar-none">
             <Link href="/" className="text-primary font-medium py-2 hover:text-secondary transition-colors flex-shrink-0">Home</Link>
             <a href="#" className="text-foreground hover:text-primary py-2 transition-colors flex-shrink-0">Combo Offer</a>
             <a href="#" className="text-foreground hover:text-primary py-2 transition-colors flex-shrink-0">Gyanbox</a>
-            <a href="#" className="text-foreground hover:text-primary py-2 transition-colors flex-shrink-0">Intelligence Book</a>
+            <Link href="/IntelligenceBook" className="text-foreground hover:text-primary py-2 transition-colors flex-shrink-0">Intelligence Book</Link>
             <Link href="/shop" className="text-foreground hover:text-primary py-2 transition-colors flex-shrink-0">Shop</Link>
             <a href="#" className="text-foreground hover:text-primary py-2 transition-colors flex-shrink-0">About Us</a>
             <a href="#" className="text-foreground hover:text-primary py-2 transition-colors flex-shrink-0">Contact Us</a>
@@ -365,16 +347,16 @@ export function Header() {
           <div className="flex flex-col gap-3">
             <Link href="/" onClick={() => setIsMenuOpen(false)} className="text-foreground hover:text-primary py-2">Home</Link>
             <Link href="/shop" onClick={() => setIsMenuOpen(false)} className="text-foreground hover:text-primary py-2">Shop</Link>
-            <Link href="/wishlist" onClick={() => setIsMenuOpen(false)} className="text-foreground hover:text-primary py-2">Wishlist ({wishlistCount})</Link>
+            <Link href="/wishlist" onClick={() => setIsMenuOpen(false)} className="text-foreground hover:text-primary py-2">Wishlist ({wishlist.length})</Link>
             <Link href="/cart" onClick={() => setIsMenuOpen(false)} className="text-foreground hover:text-primary py-2">Cart ({cart?.length || 0})</Link>
-            
+
             {/* Mobile View Conditional Links */}
             {user ? (
               <>
                 <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="text-foreground hover:text-primary py-2">My Profile</Link>
                 <Link href="/dashboard" onClick={() => setIsMenuOpen(false)} className="text-foreground hover:text-primary py-2">Dashboard</Link>
-                <button 
-                  onClick={() => { logout(); setIsMenuOpen(false); }} 
+                <button
+                  onClick={() => { logout(); setIsMenuOpen(false); }}
                   className="text-destructive text-left py-2 flex items-center gap-2"
                 >
                   <LogOut className="w-4 h-4" /> Logout

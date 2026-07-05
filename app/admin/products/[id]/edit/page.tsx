@@ -1,73 +1,79 @@
 'use client'
 
-import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ProductForm } from '@/components/admin/product-form'
 import useAxiosSecure from '@/hooks/useAxiosSecure'
-import {  useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-
-
-
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import Swal from 'sweetalert2'
 
 export default function EditProductPage() {
   const router = useRouter()
   const params = useParams()
   const queryClient = useQueryClient()
-  const [isLoading, setIsLoading] = useState(false)
   const axiosSecure = useAxiosSecure()
-  const { data: product, isError } = useQuery({
+
+  // ১. প্রোডাক্টের আগের ডাটা ফেচ করা
+  const { data: product, isLoading: isFetchLoading, isError } = useQuery({
     queryKey: ['product', params.id],
     queryFn: async () => {
       const response = await axiosSecure.get(`/products/${params.id}`)
-      return response.data
+      // আপনার ব্যাকএন্ড রেসপন্স যদি { success: true, data: {...} } এমন হয়, তাহলে response.data.data দিন
+      return response.data?.data || response.data 
     },
     enabled: !!params.id,
   })
-  // useMutation দিয়ে ডাটা পোস্ট বা আপডেট হ্যান্ডেল করা হয়
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (newProductData: any) => {
-      const response = await axiosSecure.patch(`/products/${params.id}`, newProductData)
+
+  // ২. useMutation দিয়ে ডাটা আপডেট (PATCH) হ্যান্ডেল করা
+  const { mutate, isPending: isUpdateLoading } = useMutation({
+    mutationFn: async (updatedProductData: any) => {
+      const response = await axiosSecure.patch(`/products/${params.id}`, updatedProductData)
       return response.data
     },
     onSuccess: (data) => {
       if (data.success) {
-        alert('Product added successfully!')
-        // প্রোডাক্ট লিস্টের ক্যাশ ডাটা ইনভ্যালিডেট করে রিফ্রেশ করবে
+          Swal.fire({
+                  position: "center",
+                  icon: "success",
+                  title: "Product updated successfully!",
+                  showConfirmButton: false,
+                  timer: 1500
+                });
+        
+        // লিস্ট এবং স্পেসিফিক প্রোডাক্ট উভয়ের ক্যাশ ইনভ্যালিডেট করা
         queryClient.invalidateQueries({ queryKey: ['products'] })
-        router.push('/admin/products') // প্রোডাক্ট লিস্ট পেজে নিয়ে যাবে
+        queryClient.invalidateQueries({ queryKey: ['product', params.id] })
+        
+        router.push('/admin/products') 
       } else {
         alert(data.message || 'Something went wrong')
       }
     },
     onError: (error: any) => {
-      console.error('Error adding product:', error)
+      console.error('Error updating product:', error)
       alert(error.response?.data?.message || 'Failed to connect to server')
     },
   })
 
   const handleSubmit = (data: any) => {
-    mutate(data) // এখানে mutate ফাংশনটি কল করলেই React Query কাজ শুরু করবে
+    mutate(data) 
   }
-  // const handleSubmit = async (formData: any) => {
-  //   setIsLoading(true)
 
-  //   try {
-  //     // Simulate API call
-  //     const res = await axiosSecure.patch(`/products/${params.id}`)
+  // ডাটা লোড হওয়ার সময় একটি সিম্পল লোডার দেখানো ভালো
+  if (isFetchLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <p className="text-gray-500 font-medium">Loading product data...</p>
+      </div>
+    )
+  }
 
-  //     if (res) {
-  //       alert('পণ্য সফলভাবে আপডেট করা হয়েছে!')
-
-  //       // Redirect to products page
-  //       router.push('/admin/products')
-  //     }
-  //   } catch (error) {
-  //     console.error('Error updating product:', error)
-  //     alert('পণ্য আপডেট করতে ত্রুটি হয়েছে')
-  //   } finally {
-  //     setIsLoading(false)
-  //   }
-  // }
+  if (isError || !product) {
+    return (
+      <div className="p-6 text-center text-red-600 font-medium">
+        Error loading product or product not found!
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -79,7 +85,7 @@ export default function EditProductPage() {
       <ProductForm
         initialData={product}
         onSubmit={handleSubmit}
-        isLoading={isLoading}
+        isLoading={isUpdateLoading} // রিয়্যাক্ট কোয়েরির 'isPending' পাস করা হয়েছে
       />
     </div>
   )

@@ -2,26 +2,29 @@
 
 import { useQuery } from '@tanstack/react-query'
 import useAxiosPublic from '@/hooks/AxiosPublic'
-import { ProductCard, Product } from './ProductCard' // পাথ ঠিক আছে কিনা নিশ্চিত হয়ে নেবেন
+import { ProductCard, Product } from './ProductCard'
+import Link from 'next/link'
+import { Button } from './ui/button'
 
 interface ProductSectionProps {
   title: string
   subtitle: string
 }
 
-export function ProductSection({ title, subtitle }: ProductSectionProps) {
+export function IntelligenceBook({ title, subtitle }: ProductSectionProps) {
   const axiosPublic = useAxiosPublic()
 
-
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['products'],
+
+    queryKey: ['products', 'Intelligence Book'],
     queryFn: async () => {
-      const response = await axiosPublic.get(`/products?t=${Date.now()}`)
+      // ২. API URL-এ category=Intelligence Book পাস করা হয়েছে এবং সাথে আপনার ক্যাশ বাস্টিং (t) রাখা হয়েছে
+      const response = await axiosPublic.get(`/products?category=Intelligence Book&t=${Date.now()}`)
       return response.data
     },
-    staleTime: 0,                 
-    refetchOnMount: 'always',     
-    refetchOnWindowFocus: true,  
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   })
 
   // লোডিং স্টেট
@@ -44,10 +47,12 @@ export function ProductSection({ title, subtitle }: ProductSectionProps) {
 
   const products: Product[] = data?.products || []
 
+
+
   return (
     <section className="py-12 bg-background">
       <div className="max-w-7xl mx-auto px-4">
-        
+
         {/* Section Header */}
         <div className="mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-1 tracking-tight">
@@ -70,7 +75,17 @@ export function ProductSection({ title, subtitle }: ProductSectionProps) {
             ))
           )}
         </div>
-
+       
+      </div>
+      <div className='max-w-7xl mx-auto py-6 flex justify-center '>
+         <Link href="/products">
+          <Button
+            variant="outline"
+            className="hidden sm:flex"
+          >
+            View All
+          </Button>
+        </Link>
       </div>
     </section>
   )

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutGrid, Package, ShoppingCart, Users, Settings, HelpCircle } from 'lucide-react'
+import Image from 'next/image'
 
 const menuItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutGrid },
@@ -18,15 +19,9 @@ export function AdminSidebar() {
   return (
     <aside className="w-64 bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 flex flex-col h-screen sticky top-0 overflow-y-auto">
       {/* Logo Section */}
-      <div className="p-4 md:p-6 border-b border-gray-200">
-        <Link href="/admin" className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center font-bold text-white text-lg flex-shrink-0">
-            TS
-          </div>
-          <div className="hidden md:block">
-            <p className="text-sm font-bold text-gray-900">ToplyShop</p>
-            <p className="text-xs text-gray-500">Admin</p>
-          </div>
+      <div className="  border-b border-gray-200">
+        <Link href="/" className="">
+          <Image src="/logo.png" alt="main logo" width={300} height={100} priority  />
         </Link>
       </div>
 
@@ -47,7 +42,7 @@ export function AdminSidebar() {
                   : 'text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <Icon size={20} className="flex-shrink-0" />
+              <Icon size={20} className="shrink-0" />
               <span className="hidden md:inline font-medium">{item.label}</span>
               {isActive && <div className="hidden md:block ml-auto w-2 h-2 bg-white rounded-full"></div>}
             </Link>

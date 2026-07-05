@@ -2,6 +2,7 @@
 
 import { LogOut, Search, Bell, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/context/auth-context'
 
 interface AdminHeaderProps {
   sidebarOpen: boolean
@@ -9,6 +10,8 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ sidebarOpen, setSidebarOpen }: AdminHeaderProps) {
+const {logout}= useAuth()
+
   return (
     <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-3 md:py-4 flex items-center justify-between sticky top-0 z-40">
       {/* Left - Mobile Menu & Search */}
@@ -65,6 +68,7 @@ export function AdminHeader({ sidebarOpen, setSidebarOpen }: AdminHeaderProps) {
         <Button 
           variant="ghost" 
           size="sm" 
+          onClick={logout}
           className="flex items-center gap-2 text-gray-600 hover:text-red-600 hover:bg-red-50 px-2"
         >
           <LogOut size={18} />

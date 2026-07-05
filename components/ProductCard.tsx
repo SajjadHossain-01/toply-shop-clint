@@ -2,18 +2,17 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation' // useRouter ইম্পোর্ট করা হয়েছে
+import { useRouter } from 'next/navigation'
 import { Star, ShoppingCart, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import Swal from 'sweetalert2'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import useAxiosSecure from '@/hooks/useAxiosSecure'
 import { useAuth } from '@/context/auth-context'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-// আপনার নতুন ডাটা স্ট্রাকচার অনুযায়ী টাইপ ডেফিনিশন
 export interface Product {
     _id: string
     name: string
@@ -25,6 +24,7 @@ export interface Product {
         average: number
         count: number
     }
+    isFeatured:boolean
 }
 
 interface ProductCardProps {
@@ -32,35 +32,102 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-     const [isFavorite, setIsFavorite] = useState(false)
     const router = useRouter() 
     const queryClient = useQueryClient()
     const axiosSecure = useAxiosSecure()
-    const { user } = useAuth()
+    const { user } = useAuth() // আপনার auth context-এ loading থাকলে সেটিও নিয়ে আসতে পারেন (e.g., { user, loading })
 
-    // ১. প্রথম ছবি নেওয়া, না থাকলে প্লেসহোল্ডার
     const displayImage = product.images && product.images.length > 0
         ? product.images[0]
         : '/placeholder.jpg'
 
-    // ২. ডাইনামিক রেটিং রাউন্ড করা
     const roundedRating = Math.round(product.ratings?.average || 5)
 
-    // ৩. অফার প্রাইস অনুযায়ী ডিসকাউন্ট পার্সেন্টেজ ক্যালকুলেশন
     const discount = product.price && product.offerPrice
         ? Math.round(((product.price - product.offerPrice) / product.price) * 100)
         : 0
-    // ৩. কার্টে যোগ করার মিউটেশন (Add to Cart Mutation)
+
+    // ================= WISHLIST LOGIC (FIXED & OPTIMIZED) =================
+    
+    // ১. React Query দিয়ে ডাটাবেজ থেকে উইশলিস্টের ডাটা ফেচ করা
+    const { data: dbWishlist = [] } = useQuery({
+        queryKey: ['wishlist', user?.email],
+        queryFn: async () => {
+            if (!user?.email) return [];
+            const res = await axiosSecure.get(`/wishlist?email=${user.email}`);
+            return Array.isArray(res.data) ? res.data : [];
+        },
+        enabled: !!user?.email, // শুধুমাত্র ইউজার লগইন থাকলেই এপিআই কল হবে
+    })
+
+    // ২. গেস্ট ইউজারের জন্য লোকাল উইশলিস্ট রিঅ্যাক্টিভ করা
+    const { data: localWishlist = [] } = useQuery({
+        queryKey: ['wishlist', 'guest'],
+        queryFn: () => {
+            if (typeof window === 'undefined') return [];
+            const localData = localStorage.getItem("guest_wishlist");
+            return localData ? JSON.parse(localData) : [];
+        },
+        enabled: !user?.email, // ইউজার লগইন না থাকলে লোকাল স্টোরেজ ট্র্যাক করবে
+    })
+
+    // ৩. প্রোডাক্টটি উইশলিস্টে আছে কিনা তা ডাইনামিকালি চেক করা (কোনো আলাদা state বা useEffect লাগবে না)
+    const isFavorite = user?.email
+        ? dbWishlist.some((item: any) => (item._id === product._id || item.productId === product._id))
+        : localWishlist.some((item: any) => item._id === product._id);
+
+
+    // উইশলিস্টে যোগ/বিয়োগ করার হ্যান্ডলার
+    const handleWishlistToggle = async (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        if (user && user?.email) {
+            try {
+                if (isFavorite) {
+                    // অলরেডি ফেভারিট থাকলে ডাটাবেজ থেকে রিমুভ হবে
+                    await axiosSecure.delete(`/wishlist/${product._id}`)
+                    toast.error('উইশলিস্ট থেকে সরানো হয়েছে')
+                } else {
+                    // না থাকলে অ্যাড হবে
+                    await axiosSecure.post('/wishlist', { productId: product._id, email: user.email, product })
+                    toast.success('উইশলিস্টে যোগ করা হয়েছে')
+                }
+                // সফল হওয়ার পর ক্যাশ ইনভ্যালিডেট করা, যাতে সাথে সাথে লাভ আইকন আপডেট হয়
+                queryClient.invalidateQueries({ queryKey: ['wishlist', user?.email] })
+            } catch (error) {
+                toast.error('উইশলিস্ট আপডেট করতে সমস্যা হয়েছে')
+            }
+        } else {
+            // গেস্ট ইউজারের লোকাল স্টোরেজ হ্যান্ডলিং
+            try {
+                const localData = localStorage.getItem("guest_wishlist")
+                let wishlistList = localData ? JSON.parse(localData) : []
+
+                if (isFavorite) {
+                    wishlistList = wishlistList.filter((item: any) => item._id !== product._id)
+                    toast.error('উইশলিস্ট থেকে সরানো হয়েছে')
+                } else {
+                    wishlistList.push(product)
+                    toast.success('উইশলিস্টে যোগ করা হয়েছে')
+                }
+
+                localStorage.setItem("guest_wishlist", JSON.stringify(wishlistList))
+                queryClient.invalidateQueries({ queryKey: ['wishlist', 'guest'] })
+            } catch (error) {
+                console.error("Local wishlist error:", error)
+            }
+        }
+    }
+
+    // ================= CART LOGIC =================
     const addToCartMutation = useMutation({
         mutationFn: async (cartItem: any) => {
-            // এই মিউটেশনটি শুধু লগইন করা ইউজারদের জন্য সার্ভারে রিকোয়েস্ট পাঠাবে
             const response = await axiosSecure.post('/cart', cartItem);
             return response.data;
         },
         onSuccess: () => {
-            // কার্টের গ্লোবাল স্টেট বা কাউন্ট রি-ফেচ করার জন্য
             queryClient.invalidateQueries({ queryKey: ['cart', user?.email] });
-
             Swal.fire({
                 title: "সফল হয়েছে!",
                 text: "পণ্যটি আপনার কার্টে যোগ করা হয়েছে।",
@@ -78,8 +145,10 @@ export function ProductCard({ product }: ProductCardProps) {
         }
     });
 
-    // কার্ট বাটনে ক্লিকের হ্যান্ডলার
-    const handleAddToCart = () => {
+    const handleAddToCart = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        
         if (!product) return;
 
         const cartItem = {
@@ -87,7 +156,7 @@ export function ProductCard({ product }: ProductCardProps) {
             name: product.name,
             price: product.offerPrice || product.price,
             image: displayImage,
-            quantity: product.price,
+            quantity: 1, 
             email: user?.email || null
         };
 
@@ -103,14 +172,12 @@ export function ProductCard({ product }: ProductCardProps) {
                 );
 
                 if (existingProductIndex > -1) {
-                    cartList[existingProductIndex].quantity += product.price;
+                    cartList[existingProductIndex].quantity += 1;
                 } else {
                     cartList.push(cartItem);
                 }
 
                 localStorage.setItem("guest_cart", JSON.stringify(cartList));
-
-
                 queryClient.invalidateQueries({ queryKey: ['cart'] });
 
                 Swal.fire({
@@ -122,17 +189,10 @@ export function ProductCard({ product }: ProductCardProps) {
                 });
             } catch (error) {
                 console.error("Local cart error:", error);
-                Swal.fire({
-                    title: "দুঃখিত!",
-                    text: "কার্টে যোগ করতে সমস্যা হয়েছে।",
-                    icon: "error"
-                });
             }
         }
     };
 
-
-    
     const handleDirectCheckout = (e: React.MouseEvent) => {
         e.preventDefault() 
         e.stopPropagation() 
@@ -169,7 +229,7 @@ export function ProductCard({ product }: ProductCardProps) {
                             />
                         </Link>
 
-                        {/* Badges (ডিসকাউন্ট ও অফার ট্যাগ) */}
+                        {/* Badges */}
                         <div className="absolute top-3 left-3 flex flex-col gap-2">
                             {discount > 0 && (
                                 <Badge className="bg-primary text-primary-foreground font-semibold">
@@ -182,15 +242,10 @@ export function ProductCard({ product }: ProductCardProps) {
                         <Button
                             variant="secondary"
                             size="icon"
-                            className="absolute top-3 right-3 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                setIsFavorite(!isFavorite)
-                                toast.success('উইশলিস্টে যোগ করা হয়েছে')
-                            }}
+                            className="absolute top-3 right-3 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            onClick={handleWishlistToggle}
                         >
-                            <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current text-accent' : ''}`} />
+                            <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
                         </Button>
 
                         {/* Quick Add To Cart Button */}
@@ -229,7 +284,7 @@ export function ProductCard({ product }: ProductCardProps) {
                                     key={i}
                                     size={16}
                                     className={`${i < roundedRating
-                                        ? 'fill-chart-4 text-chart-4' // থিম ভিত্তিক গোল্ডেন কালার
+                                        ? 'fill-chart-4 text-chart-4' 
                                         : 'fill-muted text-muted'
                                         }`}
                                 />
@@ -254,12 +309,11 @@ export function ProductCard({ product }: ProductCardProps) {
                         )}
                     </div>
 
-                    {/* প্রধান অ্যাকশন বাটন (অর্ডার করুন) */}
                     <Button
                         onClick={handleDirectCheckout}
                         className="w-full bg-[#e91e63] hover:bg-[#d81b60] text-white font-bold h-11 rounded-xl text-md transition-all"
                     >
-                        অর্ডার করুন
+                        Order Now
                     </Button>
                 </div>
 

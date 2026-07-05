@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { ProductForm } from '@/components/admin/product-form'
 import useAxiosSecure from '@/hooks/useAxiosSecure'
+import Swal from 'sweetalert2'
 
 
 
@@ -21,10 +22,15 @@ export default function AddProductPage() {
     },
     onSuccess: (data) => {
       if (data.success) {
-        alert('Product added successfully!')
-        // প্রোডাক্ট লিস্টের ক্যাশ ডাটা ইনভ্যালিডেট করে রিফ্রেশ করবে
-        queryClient.invalidateQueries({ queryKey: ['products'] }) 
-        router.push('/admin/products') // প্রোডাক্ট লিস্ট পেজে নিয়ে যাবে
+        Swal.fire({
+          position: "center",
+          icon: "success",
+          title: "Product added successfully!",
+          showConfirmButton: false,
+          timer: 1500
+        });
+        queryClient.invalidateQueries({ queryKey: ['products'] })
+        router.push('/admin/products')
       } else {
         alert(data.message || 'Something went wrong')
       }
@@ -36,7 +42,7 @@ export default function AddProductPage() {
   })
 
   const handleProductSubmit = (data: any) => {
-    mutate(data) // এখানে mutate ফাংশনটি কল করলেই React Query কাজ শুরু করবে
+    mutate(data)
   }
 
   return (

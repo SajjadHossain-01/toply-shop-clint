@@ -13,7 +13,7 @@ export default function ProductsPage() {
           <p className="text-gray-600 mt-1">Manage and view all your products</p>
         </div>
         <Link href="/admin/products/add">
-          <Button className="bg-gradient-to-r from-primary to-primary/80 hover:shadow-lg text-white flex items-center gap-2 font-semibold">
+          <Button className="bg-linear-to-r from-primary to-primary/80 hover:shadow-lg text-white flex items-center gap-2 font-semibold">
             <Plus size={20} />
             Add New Product
           </Button>

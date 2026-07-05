@@ -124,13 +124,4 @@
   }
 }
 
-/* PDF জেনারেট করার সময় এই স্টাইলগুলো প্রয়োগ হবে */
-.pdf-container {
-  color: #000000 !important; /* সব টেক্সট কালো */
-  background-color: #ffffff !important; /* ব্যাকগ্রাউন্ড সাদা */
-}
 
-/* যদি কোনো স্পেসিফিক বর্ডার বা কালার সমস্যা করে */
-.pdf-container * {
-  border-color: #e5e7eb !important; /* Gray-200 */
-}

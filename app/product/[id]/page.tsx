@@ -1,16 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Star, ShoppingCart, Phone, MessageCircle, PhoneCall, FacebookIcon, YoutubeIcon, InstagramIcon } from 'lucide-react'
+import { Star, ShoppingCart, Phone, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RelatedProducts } from '@/components/related-products'
-import { useParams, useRouter } from 'next/navigation' // useRouter যুক্ত করা হয়েছে
-import useAxiosPublic from '@/hooks/AxiosPublic'
-// import useAxiosSecure from '@/hooks/AxiosSecure' // যদি টোকেন ওয়ালা সিকিউর হুক থাকে তবে এটি অন করুন
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query' // Mutation ও QueryClient যুক্ত হয়েছে
+import { useParams, useRouter } from 'next/navigation'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Footer } from '@/components/footer'
 import { Header } from '@/components/header'
-import Swal from 'sweetalert2' // অ্যালার্ট দেখানোর জন্য SweetAlert2 ব্যবহার করা বেস্ট
+import Swal from 'sweetalert2'
 import useAxiosSecure from '@/hooks/useAxiosSecure'
 import { useAuth } from '@/context/auth-context'
 
@@ -18,65 +16,65 @@ export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const axiosSecure = useAxiosSecure() // সিকিউর হুকের জন্য
-  const { user } = useAuth();
+  const axiosSecure = useAxiosSecure()
+  const { user } = useAuth()
 
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
   const [mainImage, setMainImage] = useState('')
   const [zoomStyle, setZoomStyle] = useState({ display: 'none', backgroundPosition: '0% 0%' })
 
-  // ১. রিয়্যাক্ট কুয়েরি হুক (প্রোডাক্ট ডাটা ফেচ)
+  // ১. রিয়্যাক্ট কুয়েরি হুক
   const { data: product, isLoading, isError } = useQuery({
     queryKey: ['product', params.id],
     queryFn: async () => {
       const response = await axiosSecure.get(`/products/${params.id}`)
-      return response.data
+      return response.data?.data || response.data 
     },
     enabled: !!params.id,
   })
 
-  // ২. প্রোডাক্ট লোড হওয়ার পর প্রথম ইমেজ সেট করা
+  // ২. প্রোডাক্ট ডাটা লোড বা পরিবর্তন হওয়ার সাথে সাথে মেইন ইমেজ সেট করা
   useEffect(() => {
     if (product) {
       const defaultImage = product.images && product.images.length > 0 ? product.images[0] : product.image;
-      setMainImage(defaultImage || '📦')
+      setMainImage(defaultImage || 'https://placehold.co/600x600?text=No+Image')
     }
   }, [product])
 
+  // 💡 সমাধান: ইনফিনিট লুপ এড়াতে স্টেট ছাড়া সরাসরি বডিতে ভেরিয়েবল ডিক্লেয়ার করা হলো
+  // প্রোডাক্টের কোড না থাকলে ডিফল্ট হিসেবে "Umm2uqK6Mbs" কোডটি বসবে
+  const youtubeVideoCode = product?.youtubeCode && product.youtubeCode.trim() !== "" 
+    ? product.youtubeCode 
+    : "Umm2uqK6Mbs";
 
-
-  // ৩. কার্টে যোগ করার মিউটেশন (Add to Cart Mutation)
+  // ৩. কার্টে যোগ করার মিউটেশন
   const addToCartMutation = useMutation({
     mutationFn: async (cartItem: any) => {
-      // এই মিউটেশনটি শুধু লগইন করা ইউজারদের জন্য সার্ভারে রিকোয়েস্ট পাঠাবে
-      const response = await axiosSecure.post('/cart', cartItem);
-      return response.data;
+      const response = await axiosSecure.post('/cart', cartItem)
+      return response.data
     },
     onSuccess: () => {
-      // কার্টের গ্লোবাল স্টেট বা কাউন্ট রি-ফেচ করার জন্য
-      queryClient.invalidateQueries({ queryKey: ['cart', user?.email] });
-
+      queryClient.invalidateQueries({ queryKey: ['cart', user?.email] })
       Swal.fire({
         title: "সফল হয়েছে!",
         text: "পণ্যটি আপনার কার্টে যোগ করা হয়েছে।",
         icon: "success",
         confirmButtonColor: "#3085d6",
         confirmButtonText: "ঠিক আছে"
-      });
+      })
     },
     onError: (error: any) => {
       Swal.fire({
         title: "দুঃখিত!",
         text: error?.response?.data?.message || "আবার চেষ্টা করুন।",
         icon: "error"
-      });
+      })
     }
-  });
+  })
 
-  // কার্ট বাটনে ক্লিকের হ্যান্ডলার
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product) return
 
     const cartItem = {
       productId: product._id,
@@ -85,29 +83,25 @@ export default function ProductDetailPage() {
       image: mainImage,
       quantity: quantity,
       email: user?.email || null
-    };
+    }
 
-    if (user && user?.email) {
-      addToCartMutation.mutate(cartItem);
+    if (user?.email) {
+      addToCartMutation.mutate(cartItem)
     } else {
       try {
-        const localCart = localStorage.getItem("guest_cart");
-        const cartList = localCart ? JSON.parse(localCart) : [];
+        const localCart = localStorage.getItem("guest_cart")
+        const cartList = localCart ? JSON.parse(localCart) : []
 
-        const existingProductIndex = cartList.findIndex(
-          (item: any) => item.productId === product._id
-        );
+        const existingProductIndex = cartList.findIndex((item: any) => item.productId === product._id)
 
         if (existingProductIndex > -1) {
-          cartList[existingProductIndex].quantity += quantity;
+          cartList[existingProductIndex].quantity += quantity
         } else {
-          cartList.push(cartItem);
+          cartList.push(cartItem)
         }
 
-        localStorage.setItem("guest_cart", JSON.stringify(cartList));
-
-       
-        queryClient.invalidateQueries({ queryKey: ['cart'] });
+        localStorage.setItem("guest_cart", JSON.stringify(cartList))
+        queryClient.invalidateQueries({ queryKey: ['cart'] })
 
         Swal.fire({
           title: "সফল হয়েছে!",
@@ -115,37 +109,32 @@ export default function ProductDetailPage() {
           icon: "success",
           confirmButtonColor: "#3085d6",
           confirmButtonText: "ঠিক আছে"
-        });
+        })
       } catch (error) {
-        console.error("Local cart error:", error);
+        console.error("Local cart error:", error)
         Swal.fire({
           title: "দুঃখিত!",
           text: "কার্টে যোগ করতে সমস্যা হয়েছে।",
           icon: "error"
-        });
+        })
       }
     }
-  };
+  }
 
   const handleBuyNow = () => {
-    if (!product) return;
+    if (!product) return
 
-    // কার্ট আইটেমের ডাটা রেডি করা
     const directCheckoutItem = [{
       productId: product._id,
       name: product.name,
       price: product.offerPrice || product.price,
       image: mainImage,
       quantity: quantity
-    }];
+    }]
 
-    // লোকাল স্টোরেজে সাময়িক সেভ করে ইউজারকে সরাসরি চেকআউট বা অর্ডার পেইজে পাঠিয়ে দেওয়া
-    localStorage.setItem('direct-checkout', JSON.stringify(directCheckoutItem));
-
-    // আপনার চেকআউট/অর্ডার পেইজের রাউটে পাঠিয়ে দিন
-    router.push('/checkout?direct=true');
-  };
-
+    localStorage.setItem('direct-checkout', JSON.stringify(directCheckoutItem))
+    router.push('/checkout?direct=true')
+  }
 
   // মাউস জুম ফাংশনসমূহ
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -160,7 +149,11 @@ export default function ProductDetailPage() {
   }
 
   if (isLoading) {
-    return <div className="text-center py-20 font-medium text-gray-600">পণ্যের বিবরণ লোড হচ্ছে...</div>
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <p className="text-gray-500 font-medium">পণ্যের বিবরণ লোড হচ্ছে...</p>
+      </div>
+    )
   }
 
   if (isError || !product) {
@@ -173,13 +166,11 @@ export default function ProductDetailPage() {
 
   const originalPrice = product.price || 0
   const currentPrice = product.offerPrice || product.price || 0
-  const discount = originalPrice > currentPrice
-    ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
-    : 0
+  const discount = originalPrice > currentPrice ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0
 
-  const productImages = product?.images && product.images.length > 0
-    ? product.images
-    : [product?.image].filter(Boolean);
+  const productImages = Array.isArray(product.images) && product.images.length > 0 
+    ? product.images 
+    : [product.image || product.images].filter(Boolean)
 
   return (
     <main className="min-h-screen bg-white">
@@ -201,13 +192,14 @@ export default function ProductDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
           {/* Images */}
           <div>
-            <div className="relative bg-gray-50 rounded-2xl aspect-square flex items-center justify-center mb-4 border border-gray-100 shadow-sm overflow-hidden cursor-zoom-in"
+            <div 
+              className="relative bg-gray-50 rounded-2xl aspect-square flex items-center justify-center mb-4 border border-gray-100 shadow-sm overflow-hidden cursor-zoom-in"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
             >
               <img
                 src={mainImage || 'https://placehold.co/600x600?text=No+Image'}
-                alt={product?.name}
+                alt={product.name}
                 className="w-full h-full object-contain"
               />
               <div
@@ -221,6 +213,7 @@ export default function ProductDetailPage() {
               />
             </div>
 
+            {/* থাম্বনেইল ইমেজ লুপ */}
             <div className="grid grid-cols-5 gap-2">
               {productImages.map((imgUrl: string, index: number) => (
                 <button
@@ -271,11 +264,11 @@ export default function ProductDetailPage() {
                 )}
               </div>
               <p className="text-gray-600 text-sm">
-                विशेष ছাড় वर्तमान मूल্যে পাওয়া যাচ্ছে এই পণ্য
+                विशेष ছাড় वर्तमान মূল্যে পাওয়া যাচ্ছে এই পণ্য
               </p>
             </div>
 
-            <p className="text-gray-700 mb-6 leading-relaxed">
+            <p className="text-gray-700 mb-6 leading-relaxed whitespace-pre-line">
               {product.description}
             </p>
 
@@ -301,7 +294,7 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Action Buttons (ফাংশন কল সহ আপডেট করা হয়েছে) */}
+            {/* Action Buttons */}
             <div className="space-y-4 mb-6">
               <div className="grid grid-cols-2 gap-3">
                 <Button
@@ -331,38 +324,21 @@ export default function ProductDetailPage() {
                 </a>
                 <a
                   href="https://wa.me/8801970467192"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full bg-[#25d366] hover:bg-[#1ebe57] text-white py-3.5 px-6 rounded-lg text-base font-bold shadow-sm transition flex items-center justify-center gap-2"
                 >
                   <MessageCircle size={18} /> হোয়াটসঅ্যাপ
                 </a>
-                <a
-                  href="https://m.me/toplyshop"
-                  className="w-full bg-[#0084ff] hover:bg-[#0072dd] text-white py-3.5 px-6 rounded-lg text-base font-bold shadow-sm transition flex items-center justify-center gap-2"
-                >
-                  <MessageCircle size={18} /> ম্যাসেঞ্জার
-                </a>
               </div>
             </div>
 
-            {/* Social channels section */}
-            <div className="border-t border-gray-100 pt-6 mb-6">
-              <p className="text-gray-800 font-bold text-sm mb-3 flex items-center justify-center gap-1 bg-gray-50 py-2 rounded-lg border border-gray-200">
-                সকল প্রোডাক্টের ভিডিও দেখতে টপলিশপের সোশ্যাল মিডিয়ায় যুক্ত হোন 👇
-              </p>
-              <div className="flex items-center justify-center gap-3">
-                <a href="#" className="w-10 h-10 bg-[#3b5998] text-white rounded-full flex items-center justify-center hover:scale-110 transition"><FacebookIcon size={18} /></a>
-                <a href="#" className="w-10 h-10 bg-[#ff0000] text-white rounded-full flex items-center justify-center hover:scale-110 transition"><YoutubeIcon size={18} /></a>
-                <a href="#" className="w-10 h-10 bg-[#e1306c] text-white rounded-full flex items-center justify-center hover:scale-110 transition"><InstagramIcon size={18} /></a>
-                <a href="#" className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center hover:scale-110 transition"><span className="font-extrabold text-sm">🎵</span></a>
-              </div>
-            </div>
-
-            {/* Youtube Preview Component */}
-            <div className="relative bg-gray-900 rounded-xl overflow-hidden aspect-video shadow-lg group border border-gray-200">
+            {/* Youtube Video Section */}
+            <div className="relative bg-gray-900 rounded-xl overflow-hidden aspect-video shadow-lg group border border-gray-200 mt-6">
               <iframe
                 width="100%"
                 height="100%"
-                src={`https://www.youtube.com/embed/P2ErRqg2Ea8?rel=0&modestbranding=1&autoplay=0`}
+                src={`https://www.youtube.com/embed/${youtubeVideoCode}?rel=0&modestbranding=1&autoplay=0`}
                 title="Main Video"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -394,10 +370,10 @@ export default function ProductDetailPage() {
           {activeTab === 'description' && (
             <div className="space-y-4 text-gray-700 leading-relaxed">
               <h3 className="font-semibold text-gray-900 mb-3">পণ্য বিবরণ:</h3>
-              <ul className="space-y-2">
-                {product.details?.map((detail: string, index: number) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span>{detail}</span>
+              <ul className="list-disc pl-5 space-y-2">
+                {Array.isArray(product.details) && product.details.map((detail: string, index: number) => (
+                  <li key={index} className="text-gray-700">
+                    {detail}
                   </li>
                 ))}
               </ul>
@@ -425,7 +401,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      <RelatedProducts category={product.category} />
+      <RelatedProducts productId={product._id} />
       <Footer />
     </main>
   )

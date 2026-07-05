@@ -9,7 +9,7 @@ interface ProductSectionProps {
   subtitle: string
 }
 
-export function ProductSection({ title, subtitle }: ProductSectionProps) {
+export function FeaturesProduct({ title, subtitle }: ProductSectionProps) {
   const axiosPublic = useAxiosPublic()
 
 
@@ -23,6 +23,8 @@ export function ProductSection({ title, subtitle }: ProductSectionProps) {
     refetchOnMount: 'always',     
     refetchOnWindowFocus: true,  
   })
+
+  
 
   // লোডিং স্টেট
   if (isLoading) {
@@ -43,7 +45,7 @@ export function ProductSection({ title, subtitle }: ProductSectionProps) {
   }
 
   const products: Product[] = data?.products || []
-
+const featureProduct = products.filter((product)=>product.isFeatured === true)
   return (
     <section className="py-12 bg-background">
       <div className="max-w-7xl mx-auto px-4">
@@ -60,12 +62,12 @@ export function ProductSection({ title, subtitle }: ProductSectionProps) {
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.length === 0 ? (
+          {featureProduct.length === 0 ? (
             <div className="col-span-full text-center py-12 text-muted-foreground border border-dashed rounded-xl">
               কোনো প্রোডাক্ট পাওয়া যায়নি।
             </div>
           ) : (
-            products.map((product) => (
+            featureProduct.map((product) => (
               <ProductCard key={product._id} product={product} />
             ))
           )}
